@@ -55,7 +55,8 @@ public class AdminLoginController {
                     view,
                     "Cannot reach server or login failed.\n\n"
                             + detail
-                            + "\n\nEnsure WordyServer is running on port 9090 and MySQL is set up (run wordy.sql).",
+                            + "\n\nEnsure WordyServer is running (check .wordy-grpc-port in the project folder for the port).\n"
+                            + "Default admin login: username admin, password 1234 (after running wordy.sql).",
                     "Connection Error",
                     JOptionPane.ERROR_MESSAGE
             );

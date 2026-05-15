@@ -1,5 +1,6 @@
 package com.wordy.client.player.model;
 
+import com.wordy.common.EndpointConfig;
 import com.wordy.grpc.*;
 import io.grpc.ManagedChannel;
 import java.util.Iterator;
@@ -18,7 +19,7 @@ public class PlayerModel {
     private String username;
 
     public PlayerModel() {
-        channel = ManagedChannelBuilder.forAddress("localhost", 9090)
+        channel = ManagedChannelBuilder.forAddress(EndpointConfig.host(), EndpointConfig.clientPort())
                 .usePlaintext()
                 .build();
 

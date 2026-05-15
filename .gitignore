@@ -5,3 +5,4 @@
 *.jar
 !gradle/wrapper/gradle-wrapper.jar
 .idea/workspace.xml
+.wordy-grpc-port

@@ -1,5 +1,6 @@
 package com.wordy.client.admin.model;
 
+import com.wordy.common.EndpointConfig;
 import com.wordy.grpc.AdminServiceGrpc;
 import com.wordy.grpc.BasicResponse;
 import com.wordy.grpc.CreatePlayerRequest;
@@ -23,7 +24,7 @@ public class AdminModel {
     private String sessionId;
 
     public AdminModel() {
-        channel = ManagedChannelBuilder.forAddress("localhost", 9090)
+        channel = ManagedChannelBuilder.forAddress(EndpointConfig.host(), EndpointConfig.clientPort())
                 .usePlaintext()
                 .build();
         loginStub = LoginServiceGrpc.newBlockingStub(channel);

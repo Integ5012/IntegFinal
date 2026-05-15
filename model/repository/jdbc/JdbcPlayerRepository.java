@@ -14,7 +14,8 @@ public class JdbcPlayerRepository implements PlayerRepository {
 
     @Override
     public Player findByUsername(String username) {
-        String sql = "SELECT id, username, password, role, wins FROM players WHERE username = ?";
+        // Case-insensitive match (MySQL username collation may be case-sensitive)
+        String sql = "SELECT id, username, password, role, wins FROM players WHERE LOWER(TRIM(username)) = LOWER(TRIM(?))";
         try (PreparedStatement stmt = DatabaseConnection.getConnection().prepareStatement(sql)) {
             stmt.setString(1, username);
             try (ResultSet rs = stmt.executeQuery()) {

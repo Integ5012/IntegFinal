@@ -32,8 +32,10 @@ public class AuthService {
             return new AuthResult(false, "Invalid username or password", null, null);
         }
 
-        boolean hadPreviousSession = sessionRegistry.getCurrentSessionId(trimmedUsername).isPresent();
-        String sessionId = sessionRegistry.createSession(trimmedUsername);
+        // Use canonical username from storage (matches DB / in-memory record)
+        String accountName = player.username();
+        boolean hadPreviousSession = sessionRegistry.getCurrentSessionId(accountName).isPresent();
+        String sessionId = sessionRegistry.createSession(accountName);
         String role = player.role() == null ? "PLAYER" : player.role();
         String message = hadPreviousSession
                 ? "Login successful. Previous session was disconnected."
