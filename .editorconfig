@@ -1,0 +1,12 @@
+# Keep Markdown readable everywhere (avoid UTF-16 "box" characters in GitHub / Notepad)
+root = true
+
+[*.md]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+
+[*.java]
+charset = utf-8
+indent_style = space
+indent_size = 4

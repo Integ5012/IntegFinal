@@ -1,5 +1,5 @@
-# Setup note
+# Setup
 
-Full instructions are in **`README.md`** (UTF-8).
+Full instructions: **README.md** (must be opened as **UTF-8**).
 
-If that file looks wrong in an editor, reopen it with encoding **UTF-8** or open this project in IntelliJ and use the Gradle tasks `runServer`, `runPlayerClient`, and `runAdminClient`.
+This repo includes **.editorconfig** so Cursor / VS Code / IntelliJ save Markdown as UTF-8. If you still see box characters, use **Reopen with Encoding** and pick **UTF-8**.
