@@ -31,6 +31,27 @@ application {
     mainClass = 'com.wordy.server.WordyServer'
 }
 
+tasks.register('runServer', JavaExec) {
+    group = 'application'
+    description = 'Run the Wordy gRPC server'
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass = 'com.wordy.server.WordyServer'
+}
+
+tasks.register('runPlayerClient', JavaExec) {
+    group = 'application'
+    description = 'Run the player Swing client'
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass = 'com.wordy.client.player.PlayerMain'
+}
+
+tasks.register('runAdminClient', JavaExec) {
+    group = 'application'
+    description = 'Run the administrator Swing client'
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass = 'com.wordy.client.admin.AdminMain'
+}
+
 protobuf {
     protoc {
         artifact = "com.google.protobuf:protoc:${protobufVersion}"

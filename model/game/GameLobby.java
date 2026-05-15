@@ -12,13 +12,15 @@ import io.grpc.stub.StreamObserver;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.TimeUnit;
 
 public class GameLobby implements SessionRevocationListener {
 
     private static final int MIN_PLAYERS = 2;
 
-    private final ConcurrentLinkedQueue<QueuedPlayer> waitingPlayers = new ConcurrentLinkedQueue<>();
     private final WordDictionary dictionary;
     private final LetterGenerator letterGenerator;
     private final GameConfigRepository configRepository;
@@ -26,7 +28,16 @@ public class GameLobby implements SessionRevocationListener {
     private final PlayerRepository playerRepository;
     private final LeaderboardRepository leaderboardRepository;
 
+    private final List<QueuedPlayer> waitingPlayers = new ArrayList<>();
+    private final ScheduledExecutorService lobbyScheduler =
+            Executors.newSingleThreadScheduledExecutor(r -> {
+                Thread thread = new Thread(r, "game-lobby");
+                thread.setDaemon(true);
+                return thread;
+            });
+
     private volatile GameSession activeSession;
+    private volatile ScheduledFuture<?> waitTimeoutTask;
 
     public GameLobby(
             WordDictionary dictionary,
@@ -63,7 +74,15 @@ public class GameLobby implements SessionRevocationListener {
         }
 
         waitingPlayers.add(new QueuedPlayer(username, sessionId, observer));
-        tryStartGame();
+        notifyWaiting(observer, "Waiting for another player to join...");
+
+        if (waitingPlayers.size() == 1) {
+            scheduleWaitTimeout();
+        } else if (waitingPlayers.size() >= MIN_PLAYERS) {
+            cancelWaitTimeout();
+            startGameFromQueue();
+        }
+
         return "Joined queue";
     }
 
@@ -83,38 +102,46 @@ public class GameLobby implements SessionRevocationListener {
 
         for (QueuedPlayer queued : removed) {
             sessionRegistry.leaveGame(username);
-            disconnectObserver(queued.observer());
+            disconnectObserver(queued.observer(), "Logged in from another location");
         }
 
         if (activeSession != null && activeSession.hasPlayer(username)) {
             activeSession.disconnectPlayer(username);
             sessionRegistry.leaveGame(username);
         }
+
+        if (waitingPlayers.isEmpty()) {
+            cancelWaitTimeout();
+        }
     }
 
-    private void tryStartGame() {
-        if (activeSession != null) {
+    private void scheduleWaitTimeout() {
+        cancelWaitTimeout();
+        int waitSeconds = Math.max(1, configRepository.getConfig().getWaitingTime());
+        waitTimeoutTask = lobbyScheduler.schedule(this::onWaitTimeout, waitSeconds, TimeUnit.SECONDS);
+    }
+
+    private synchronized void onWaitTimeout() {
+        waitTimeoutTask = null;
+        if (activeSession != null || waitingPlayers.size() >= MIN_PLAYERS) {
             return;
         }
 
-        if (waitingPlayers.size() < MIN_PLAYERS) {
+        int waitSeconds = configRepository.getConfig().getWaitingTime();
+        String message = "No other player joined within " + waitSeconds + " seconds";
+        List<QueuedPlayer> expired = drainWaitingQueue();
+        for (QueuedPlayer player : expired) {
+            sessionRegistry.leaveGame(player.username());
+            disconnectObserver(player.observer(), message);
+        }
+    }
+
+    private synchronized void startGameFromQueue() {
+        if (activeSession != null || waitingPlayers.size() < MIN_PLAYERS) {
             return;
         }
 
-        List<QueuedPlayer> matchedPlayers = new ArrayList<>();
-        QueuedPlayer next;
-        while ((next = waitingPlayers.poll()) != null) {
-            matchedPlayers.add(next);
-        }
-
-        if (matchedPlayers.size() < MIN_PLAYERS) {
-            waitingPlayers.addAll(matchedPlayers);
-            for (QueuedPlayer player : matchedPlayers) {
-                sessionRegistry.leaveGame(player.username());
-            }
-            return;
-        }
-
+        List<QueuedPlayer> matchedPlayers = drainWaitingQueue();
         List<GamePlayer> players = matchedPlayers.stream()
                 .map(q -> new GamePlayer(q.username(), q.sessionId(), q.observer()))
                 .toList();
@@ -139,13 +166,42 @@ public class GameLobby implements SessionRevocationListener {
             }
         }
         activeSession = null;
-        tryStartGame();
+
+        if (!waitingPlayers.isEmpty()) {
+            if (waitingPlayers.size() == 1) {
+                scheduleWaitTimeout();
+            } else {
+                startGameFromQueue();
+            }
+        }
     }
 
-    private static void disconnectObserver(StreamObserver<GameEvent> observer) {
-        observer.onError(Status.UNAUTHENTICATED
-                .withDescription("Logged in from another location")
-                .asRuntimeException());
+    private synchronized List<QueuedPlayer> drainWaitingQueue() {
+        List<QueuedPlayer> copy = new ArrayList<>(waitingPlayers);
+        waitingPlayers.clear();
+        return copy;
+    }
+
+    private void cancelWaitTimeout() {
+        if (waitTimeoutTask != null) {
+            waitTimeoutTask.cancel(false);
+            waitTimeoutTask = null;
+        }
+    }
+
+    private static void notifyWaiting(StreamObserver<GameEvent> observer, String message) {
+        try {
+            observer.onNext(GameEvent.newBuilder()
+                    .setEventType("WAITING")
+                    .setWinner(message)
+                    .build());
+        } catch (RuntimeException ignored) {
+            // Client disconnected.
+        }
+    }
+
+    private static void disconnectObserver(StreamObserver<GameEvent> observer, String message) {
+        observer.onError(Status.FAILED_PRECONDITION.withDescription(message).asRuntimeException());
     }
 
     private record QueuedPlayer(String username, String sessionId, StreamObserver<GameEvent> observer) {

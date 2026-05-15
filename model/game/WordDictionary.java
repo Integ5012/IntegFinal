@@ -16,6 +16,8 @@ import java.util.Set;
 
 public class WordDictionary {
 
+    public static final int MIN_WORD_LENGTH = 5;
+
     private final Set<String> words;
 
     public WordDictionary(Set<String> words) {
@@ -68,6 +70,10 @@ public class WordDictionary {
         }
 
         String normalized = normalize(word);
+        if (normalized.length() < MIN_WORD_LENGTH) {
+            return ValidationResult.invalid("Word must be at least " + MIN_WORD_LENGTH + " letters");
+        }
+
         if (!words.contains(normalized)) {
             return ValidationResult.invalid("Word is not in the dictionary");
         }

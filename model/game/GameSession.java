@@ -64,7 +64,7 @@ public class GameSession {
         this.dictionary = dictionary;
         this.letterGenerator = letterGenerator;
         this.roundDurationSeconds = timeConfig.getRoundDuration();
-        this.pauseBetweenRoundsSeconds = Math.max(2, Math.min(timeConfig.getWaitingTime(), 5));
+        this.pauseBetweenRoundsSeconds = 2;
         this.onFinished = onFinished;
         this.playerRepository = playerRepository;
         this.leaderboardRepository = leaderboardRepository;

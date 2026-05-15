@@ -7,12 +7,6 @@ import com.wordy.server.controller.LoginController;
 import com.wordy.server.model.game.GameLobby;
 import com.wordy.server.model.game.LetterGenerator;
 import com.wordy.server.model.game.WordDictionary;
-import com.wordy.server.model.repository.LeaderboardRepository;
-import com.wordy.server.model.repository.PlayerRepository;
-import com.wordy.server.model.repository.GameConfigRepository;
-import com.wordy.server.model.repository.memory.InMemoryGameConfigRepository;
-import com.wordy.server.model.repository.memory.InMemoryLeaderboardRepository;
-import com.wordy.server.model.repository.memory.InMemoryPlayerRepository;
 import com.wordy.server.model.session.SessionRegistry;
 import com.wordy.server.service.AdminService;
 import com.wordy.server.service.AuthService;
@@ -41,22 +35,23 @@ public final class ServerContext {
     }
 
     public static ServerContext createDefault() throws IOException {
-        PlayerRepository playerRepository = InMemoryPlayerRepository.getInstance();
-        GameConfigRepository configRepository = InMemoryGameConfigRepository.getInstance();
-        LeaderboardRepository leaderboardRepository = InMemoryLeaderboardRepository.getInstance();
+        RepositoryProvider.Repositories repositories = RepositoryProvider.create();
         SessionRegistry sessionRegistry = SessionRegistry.getInstance();
 
-        AuthService authService = new AuthService(playerRepository, sessionRegistry);
-        AdminService adminService = new AdminService(playerRepository, configRepository);
-        LeaderboardService leaderboardService = new LeaderboardService(playerRepository, leaderboardRepository);
+        AuthService authService = new AuthService(repositories.players(), sessionRegistry);
+        AdminService adminService = new AdminService(repositories.players(), repositories.config());
+        LeaderboardService leaderboardService = new LeaderboardService(
+                repositories.players(),
+                repositories.leaderboard()
+        );
 
         GameLobby gameLobby = new GameLobby(
                 WordDictionary.loadDefault(),
                 new LetterGenerator(),
-                configRepository,
+                repositories.config(),
                 sessionRegistry,
-                playerRepository,
-                leaderboardRepository
+                repositories.players(),
+                repositories.leaderboard()
         );
         GameService gameService = new GameService(sessionRegistry, gameLobby);
 
