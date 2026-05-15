@@ -1,0 +1,86 @@
+package com.wordy.server;
+
+import com.wordy.server.controller.AdminController;
+import com.wordy.server.controller.GameController;
+import com.wordy.server.controller.LeaderboardController;
+import com.wordy.server.controller.LoginController;
+import com.wordy.server.model.game.GameLobby;
+import com.wordy.server.model.game.LetterGenerator;
+import com.wordy.server.model.game.WordDictionary;
+import com.wordy.server.model.repository.LeaderboardRepository;
+import com.wordy.server.model.repository.PlayerRepository;
+import com.wordy.server.model.repository.GameConfigRepository;
+import com.wordy.server.model.repository.memory.InMemoryGameConfigRepository;
+import com.wordy.server.model.repository.memory.InMemoryLeaderboardRepository;
+import com.wordy.server.model.repository.memory.InMemoryPlayerRepository;
+import com.wordy.server.model.session.SessionRegistry;
+import com.wordy.server.service.AdminService;
+import com.wordy.server.service.AuthService;
+import com.wordy.server.service.GameService;
+import com.wordy.server.service.LeaderboardService;
+
+import java.io.IOException;
+
+public final class ServerContext {
+
+    private final LoginController loginController;
+    private final AdminController adminController;
+    private final GameController gameController;
+    private final LeaderboardController leaderboardController;
+
+    private ServerContext(
+            LoginController loginController,
+            AdminController adminController,
+            GameController gameController,
+            LeaderboardController leaderboardController
+    ) {
+        this.loginController = loginController;
+        this.adminController = adminController;
+        this.gameController = gameController;
+        this.leaderboardController = leaderboardController;
+    }
+
+    public static ServerContext createDefault() throws IOException {
+        PlayerRepository playerRepository = InMemoryPlayerRepository.getInstance();
+        GameConfigRepository configRepository = InMemoryGameConfigRepository.getInstance();
+        LeaderboardRepository leaderboardRepository = InMemoryLeaderboardRepository.getInstance();
+        SessionRegistry sessionRegistry = SessionRegistry.getInstance();
+
+        AuthService authService = new AuthService(playerRepository, sessionRegistry);
+        AdminService adminService = new AdminService(playerRepository, configRepository);
+        LeaderboardService leaderboardService = new LeaderboardService(playerRepository, leaderboardRepository);
+
+        GameLobby gameLobby = new GameLobby(
+                WordDictionary.loadDefault(),
+                new LetterGenerator(),
+                configRepository,
+                sessionRegistry,
+                playerRepository,
+                leaderboardRepository
+        );
+        GameService gameService = new GameService(sessionRegistry, gameLobby);
+
+        return new ServerContext(
+                new LoginController(authService),
+                new AdminController(adminService),
+                new GameController(gameService),
+                new LeaderboardController(leaderboardService)
+        );
+    }
+
+    public LoginController loginController() {
+        return loginController;
+    }
+
+    public AdminController adminController() {
+        return adminController;
+    }
+
+    public GameController gameController() {
+        return gameController;
+    }
+
+    public LeaderboardController leaderboardController() {
+        return leaderboardController;
+    }
+}

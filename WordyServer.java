@@ -1,9 +1,5 @@
 package com.wordy.server;
 
-import com.wordy.server.grpc.AdminGrpcService;
-import com.wordy.server.grpc.GameGrpcService;
-import com.wordy.server.grpc.LeaderboardGrpcService;
-import com.wordy.server.grpc.LoginGrpcService;
 import io.grpc.Server;
 import io.grpc.ServerBuilder;
 
@@ -22,11 +18,13 @@ public class WordyServer {
     }
 
     public void start() throws IOException {
+        ServerContext context = ServerContext.createDefault();
+
         server = ServerBuilder.forPort(port)
-                .addService(new LoginGrpcService())
-                .addService(new AdminGrpcService())
-                .addService(new GameGrpcService())
-                .addService(new LeaderboardGrpcService())
+                .addService(context.loginController())
+                .addService(context.adminController())
+                .addService(context.gameController())
+                .addService(context.leaderboardController())
                 .build()
                 .start();
 
