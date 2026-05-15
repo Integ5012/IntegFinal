@@ -189,13 +189,16 @@ public class GameSession {
         ));
 
         if (outcome.hasWinner()) {
-            findPlayer(outcome.winnerUsername()).addRoundWin();
-            if (outcome.bestWord() != null && !outcome.bestWord().isBlank()) {
-                leaderboardRepository.insertWord(outcome.winnerUsername(), outcome.bestWord());
-            }
-            if (findPlayer(outcome.winnerUsername()).hasReachedWins(WINS_TO_WIN)) {
-                finishGame(outcome.winnerUsername());
-                return;
+            GamePlayer roundWinner = findPlayer(outcome.winnerUsername());
+            if (roundWinner != null) {
+                roundWinner.addRoundWin();
+                if (outcome.bestWord() != null && !outcome.bestWord().isBlank()) {
+                    leaderboardRepository.insertWord(outcome.winnerUsername(), outcome.bestWord());
+                }
+                if (roundWinner.hasReachedWins(WINS_TO_WIN)) {
+                    finishGame(outcome.winnerUsername());
+                    return;
+                }
             }
         }
 

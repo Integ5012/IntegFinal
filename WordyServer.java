@@ -52,7 +52,13 @@ public class WordyServer {
     public static void main(String[] args) throws IOException, InterruptedException {
         int port = args.length > 0 ? Integer.parseInt(args[0]) : DEFAULT_PORT;
         WordyServer wordyServer = new WordyServer(port);
-        wordyServer.start();
+        try {
+            wordyServer.start();
+        } catch (IOException e) {
+            System.err.println("Failed to start server: " + e.getMessage());
+            System.err.println("Ensure words.txt exists in the project folder or on the classpath.");
+            throw e;
+        }
         System.out.println("Wordy server started on port " + port);
         wordyServer.blockUntilShutdown();
     }

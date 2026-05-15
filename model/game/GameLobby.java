@@ -54,6 +54,10 @@ public class GameLobby implements SessionRevocationListener {
             return "Already in an active game";
         }
 
+        if (sessionRegistry.isInActiveGame(username)) {
+            return "Account already has an active game session";
+        }
+
         if (!sessionRegistry.tryEnterGame(username)) {
             return "Account already has an active game session";
         }

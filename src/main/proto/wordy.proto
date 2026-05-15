@@ -1,0 +1,159 @@
+syntax = "proto3";
+
+package wordy;
+
+option java_package = "com.wordy.grpc";
+option java_multiple_files = true;
+
+// ==========================
+// COMMON
+// ==========================
+
+message Empty {}
+
+message BasicResponse {
+  bool success = 1;
+  string message = 2;
+}
+
+// ==========================
+// LOGIN SERVICE
+// ==========================
+
+service LoginService {
+  rpc Login(LoginRequest) returns (LoginResponse);
+  rpc Logout(LogoutRequest) returns (BasicResponse);
+}
+
+message LoginRequest {
+  string username = 1;
+  string password = 2;
+}
+
+message LoginResponse {
+  bool success = 1;
+  string message = 2;
+  string role = 3;        // PLAYER or ADMIN
+  string sessionId = 4;
+}
+
+message LogoutRequest {
+  string sessionId = 1;
+}
+
+// ==========================
+// ADMIN SERVICE (CRUD + SEARCH)
+// ==========================
+
+service AdminService {
+
+  // CRUD
+  rpc CreatePlayer(CreatePlayerRequest) returns (BasicResponse);
+  rpc UpdatePlayer(UpdatePlayerRequest) returns (BasicResponse);
+  rpc DeletePlayer(DeletePlayerRequest) returns (BasicResponse);
+
+  // SEARCH
+  rpc SearchPlayer(SearchPlayerRequest) returns (SearchPlayerResponse);
+
+  // CONFIG
+  rpc UpdateGameConfig(GameConfigRequest) returns (BasicResponse);
+  rpc GetGameConfig(Empty) returns (GameConfigRequest);
+}
+
+// --- Requests ---
+
+message CreatePlayerRequest {
+  string username = 1;
+  string password = 2;
+}
+
+message UpdatePlayerRequest {
+  int32 id = 1;
+  string username = 2;
+  string password = 3;
+  int32 wins = 4;
+}
+
+message DeletePlayerRequest {
+  int32 id = 1;
+}
+
+message SearchPlayerRequest {
+  string keyword = 1;
+}
+
+// --- Responses ---
+
+message SearchPlayerResponse {
+  repeated Player players = 1;
+}
+
+message Player {
+  int32 id = 1;
+  string username = 2;
+  int32 wins = 3;
+}
+
+// --- Config ---
+
+message GameConfigRequest {
+  int32 waitTime = 1;   // default 10 seconds
+  int32 roundTime = 2;  // default 30 seconds
+}
+
+// ==========================
+// GAME SERVICE
+// ==========================
+
+service GameService {
+
+  // Player joins game queue
+  rpc JoinGame(JoinGameRequest) returns (stream GameEvent);
+
+  // Submit word
+  rpc SubmitWord(SubmitWordRequest) returns (SubmitWordResponse);
+}
+
+message JoinGameRequest {
+  string sessionId = 1;
+}
+
+message SubmitWordRequest {
+  string sessionId = 1;
+  string word = 2;
+}
+
+message SubmitWordResponse {
+  bool valid = 1;
+  string message = 2;
+}
+
+// --- Streaming Event Model ---
+
+message GameEvent {
+  string eventType = 1;   // START | ROUND | RESULT | END
+  int32 round = 2;
+  repeated string letters = 3;
+  string winner = 4;
+  string bestWord = 5;
+  int32 timeLeft = 6;
+  map<string, string> playerWords = 7;
+}
+
+// ==========================
+// LEADERBOARD SERVICE
+// ==========================
+
+service LeaderboardService {
+  rpc GetTopPlayers(Empty) returns (LeaderboardResponse);
+}
+
+message LeaderboardResponse {
+  repeated Player topPlayers = 1;
+  repeated LongestWordRecord longestWords = 2;
+}
+
+message LongestWordRecord {
+  string username = 1;
+  string word = 2;
+}

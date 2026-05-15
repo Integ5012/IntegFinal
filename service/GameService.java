@@ -38,7 +38,9 @@ public class GameService {
         }
 
         String status = gameLobby.join(username.get(), sessionId, responseObserver);
-        if (status.startsWith("Session expired") || status.startsWith("Account already")) {
+        if (status.startsWith("Session expired")
+                || status.startsWith("Account already")
+                || status.startsWith("Already in an active")) {
             responseObserver.onError(Status.FAILED_PRECONDITION
                     .withDescription(status)
                     .asRuntimeException());

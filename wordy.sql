@@ -34,4 +34,7 @@ VALUES ('admin', '1234', 'ADMIN');
 INSERT INTO players (username, password, role)
 VALUES ('player1', '1234', 'PLAYER');
 
+INSERT INTO players (username, password, role)
+VALUES ('player2', '1234', 'PLAYER');
+
 SELECT 'Database setup complete.' AS Status;

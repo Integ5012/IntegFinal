@@ -23,34 +23,58 @@ public class AdminController extends AdminServiceGrpc.AdminServiceImplBase {
 
     @Override
     public void createPlayer(CreatePlayerRequest request, StreamObserver<BasicResponse> responseObserver) {
-        respond(responseObserver, adminService.createPlayer(request));
+        handle(responseObserver, () -> adminService.createPlayer(request));
     }
 
     @Override
     public void updatePlayer(UpdatePlayerRequest request, StreamObserver<BasicResponse> responseObserver) {
-        respond(responseObserver, adminService.updatePlayer(request));
+        handle(responseObserver, () -> adminService.updatePlayer(request));
     }
 
     @Override
     public void deletePlayer(DeletePlayerRequest request, StreamObserver<BasicResponse> responseObserver) {
-        respond(responseObserver, adminService.deletePlayer(request));
+        handle(responseObserver, () -> adminService.deletePlayer(request));
     }
 
     @Override
     public void searchPlayer(SearchPlayerRequest request, StreamObserver<SearchPlayerResponse> responseObserver) {
-        responseObserver.onNext(GrpcViewMapper.toSearchPlayerResponse(adminService.searchPlayers(request)));
-        responseObserver.onCompleted();
+        try {
+            responseObserver.onNext(GrpcViewMapper.toSearchPlayerResponse(adminService.searchPlayers(request)));
+            responseObserver.onCompleted();
+        } catch (Exception e) {
+            e.printStackTrace();
+            responseObserver.onError(e);
+        }
     }
 
     @Override
     public void updateGameConfig(GameConfigRequest request, StreamObserver<BasicResponse> responseObserver) {
-        respond(responseObserver, adminService.updateGameConfig(request));
+        handle(responseObserver, () -> adminService.updateGameConfig(request));
     }
 
     @Override
     public void getGameConfig(Empty request, StreamObserver<GameConfigRequest> responseObserver) {
-        responseObserver.onNext(GrpcViewMapper.toGameConfigRequest(adminService.getGameConfig()));
-        responseObserver.onCompleted();
+        try {
+            responseObserver.onNext(GrpcViewMapper.toGameConfigRequest(adminService.getGameConfig()));
+            responseObserver.onCompleted();
+        } catch (Exception e) {
+            e.printStackTrace();
+            responseObserver.onError(e);
+        }
+    }
+
+    private static void handle(StreamObserver<BasicResponse> responseObserver,
+                               java.util.function.Supplier<com.wordy.server.service.dto.OperationResult> action) {
+        try {
+            respond(responseObserver, action.get());
+        } catch (Exception e) {
+            e.printStackTrace();
+            responseObserver.onNext(BasicResponse.newBuilder()
+                    .setSuccess(false)
+                    .setMessage("Server error: " + e.getMessage())
+                    .build());
+            responseObserver.onCompleted();
+        }
     }
 
     private static void respond(StreamObserver<BasicResponse> responseObserver,
