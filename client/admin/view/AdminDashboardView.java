@@ -10,7 +10,7 @@ public class AdminDashboardView extends JFrame {
     public JTable playerTable;
     public DefaultTableModel tableModel;
 
-    public JButton searchBtn, refreshBtn, addBtn, editBtn, deleteBtn;
+    public JButton searchBtn, refreshBtn, addBtn, editBtn, deleteBtn, logoutBtn;
     public JTextField searchField;
     public JLabel statusLabel;
 
@@ -112,9 +112,8 @@ public class AdminDashboardView extends JFrame {
 
         panel.add(topContainer, BorderLayout.NORTH);
 
-        // LOGOUT BOTTON
-        JButton logoutBtn = createMenuButton("Logout");
-        logoutBtn.setBackground(new Color(220, 53, 69)); // red
+        logoutBtn = createMenuButton("Logout");
+        logoutBtn.setBackground(new Color(220, 53, 69));
         logoutBtn.setForeground(Color.WHITE);
         logoutBtn.setFont(new Font("Segoe UI", Font.BOLD, 13));
 
@@ -168,11 +167,13 @@ public class AdminDashboardView extends JFrame {
 
         searchField = new JTextField(15);
         searchBtn = createButton("Search");
+        refreshBtn = createButton("Refresh");
 
         JPanel right = new JPanel();
         right.setBackground(bg);
         right.add(searchField);
         right.add(searchBtn);
+        right.add(refreshBtn);
 
         panel.add(title, BorderLayout.WEST);
         panel.add(right, BorderLayout.EAST);
@@ -182,7 +183,8 @@ public class AdminDashboardView extends JFrame {
 
     // TABLE
     private JScrollPane createTableSection() {
-        tableModel = new DefaultTableModel(new String[]{"ID", "Username", "Wins"}, 0);
+        tableModel = new DefaultTableModel(
+                new String[]{"ID", "Username", "Wins", "Online", "In game", "Queued", "Status"}, 0);
         playerTable = new JTable(tableModel);
 
         playerTable.setRowHeight(28);

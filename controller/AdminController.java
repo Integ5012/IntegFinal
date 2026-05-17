@@ -39,7 +39,9 @@ public class AdminController extends AdminServiceGrpc.AdminServiceImplBase {
     @Override
     public void searchPlayer(SearchPlayerRequest request, StreamObserver<SearchPlayerResponse> responseObserver) {
         try {
-            responseObserver.onNext(GrpcViewMapper.toSearchPlayerResponse(adminService.searchPlayers(request)));
+            responseObserver.onNext(
+                    GrpcViewMapper.toSearchPlayerResponseWithStatus(
+                            adminService.searchPlayersWithStatus(request)));
             responseObserver.onCompleted();
         } catch (Exception e) {
             e.printStackTrace();

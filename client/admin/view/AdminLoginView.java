@@ -1,11 +1,14 @@
 package com.wordy.client.admin.view;
 
+import com.wordy.client.common.ServerConnectionPanel;
+
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import java.awt.*;
 
 public class AdminLoginView extends JFrame {
 
+    public ServerConnectionPanel connectionPanel;
     public JTextField usernameField;
     public JPasswordField passwordField;
     public JButton loginButton;
@@ -18,7 +21,7 @@ public class AdminLoginView extends JFrame {
 
     public AdminLoginView() {
         setTitle("Admin Login");
-        setSize(400, 350);
+        setSize(420, 480);
         setDefaultCloseOperation(EXIT_ON_CLOSE);
         setLocationRelativeTo(null);
 
@@ -33,9 +36,13 @@ public class AdminLoginView extends JFrame {
     private JPanel createLoginCard() {
         JPanel panel = new JPanel();
         panel.setBackground(card);
-        panel.setPreferredSize(new Dimension(300, 250));
+        panel.setPreferredSize(new Dimension(340, 400));
         panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
         panel.setBorder(new EmptyBorder(20, 20, 20, 20));
+
+        connectionPanel = new ServerConnectionPanel();
+        connectionPanel.setAlignmentX(Component.CENTER_ALIGNMENT);
+        connectionPanel.setMaximumSize(new Dimension(Integer.MAX_VALUE, 120));
 
         // TITLE
         JLabel title = new JLabel("Admin Login");
@@ -75,7 +82,9 @@ public class AdminLoginView extends JFrame {
         panel.add(title);
         panel.add(Box.createRigidArea(new Dimension(0, 5)));
         panel.add(subtitle);
-        panel.add(Box.createRigidArea(new Dimension(0, 20)));
+        panel.add(Box.createRigidArea(new Dimension(0, 12)));
+        panel.add(connectionPanel);
+        panel.add(Box.createRigidArea(new Dimension(0, 12)));
 
         panel.add(username);
         panel.add(usernameField);

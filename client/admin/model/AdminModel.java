@@ -1,6 +1,5 @@
 package com.wordy.client.admin.model;
 
-import com.wordy.common.EndpointConfig;
 import com.wordy.grpc.AdminServiceGrpc;
 import com.wordy.grpc.BasicResponse;
 import com.wordy.grpc.CreatePlayerRequest;
@@ -10,6 +9,7 @@ import com.wordy.grpc.GameConfigRequest;
 import com.wordy.grpc.LoginRequest;
 import com.wordy.grpc.LoginResponse;
 import com.wordy.grpc.LoginServiceGrpc;
+import com.wordy.grpc.LogoutRequest;
 import com.wordy.grpc.SearchPlayerRequest;
 import com.wordy.grpc.SearchPlayerResponse;
 import com.wordy.grpc.UpdatePlayerRequest;
@@ -23,8 +23,8 @@ public class AdminModel {
     private final AdminServiceGrpc.AdminServiceBlockingStub adminStub;
     private String sessionId;
 
-    public AdminModel() {
-        channel = ManagedChannelBuilder.forAddress(EndpointConfig.host(), EndpointConfig.clientPort())
+    public AdminModel(String host, int port) {
+        channel = ManagedChannelBuilder.forAddress(host, port)
                 .usePlaintext()
                 .build();
         loginStub = LoginServiceGrpc.newBlockingStub(channel);
@@ -39,6 +39,20 @@ public class AdminModel {
         if (response.getSuccess()) {
             this.sessionId = response.getSessionId();
         }
+        return response;
+    }
+
+    public BasicResponse logout() {
+        if (sessionId == null || sessionId.isBlank()) {
+            return BasicResponse.newBuilder()
+                    .setSuccess(true)
+                    .setMessage("Already logged out")
+                    .build();
+        }
+        BasicResponse response = loginStub.logout(LogoutRequest.newBuilder()
+                .setSessionId(sessionId)
+                .build());
+        sessionId = null;
         return response;
     }
 

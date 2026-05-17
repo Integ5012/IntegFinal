@@ -7,10 +7,14 @@ import com.wordy.grpc.SearchPlayerRequest;
 import com.wordy.grpc.UpdatePlayerRequest;
 import com.wordy.server.model.entity.Player;
 import com.wordy.server.model.entity.TimeConfig;
+import com.wordy.server.model.game.GameLobby;
 import com.wordy.server.model.repository.GameConfigRepository;
 import com.wordy.server.model.repository.PlayerRepository;
+import com.wordy.server.model.session.SessionRegistry;
 import com.wordy.server.service.dto.OperationResult;
+import com.wordy.server.service.dto.PlayerWithStatus;
 
+import java.util.ArrayList;
 import java.util.List;
 
 public class AdminService {
@@ -19,10 +23,18 @@ public class AdminService {
 
     private final PlayerRepository playerRepository;
     private final GameConfigRepository configRepository;
+    private final SessionRegistry sessionRegistry;
+    private final GameLobby gameLobby;
 
-    public AdminService(PlayerRepository playerRepository, GameConfigRepository configRepository) {
+    public AdminService(
+            PlayerRepository playerRepository,
+            GameConfigRepository configRepository,
+            SessionRegistry sessionRegistry,
+            GameLobby gameLobby) {
         this.playerRepository = playerRepository;
         this.configRepository = configRepository;
+        this.sessionRegistry = sessionRegistry;
+        this.gameLobby = gameLobby;
     }
 
     public OperationResult createPlayer(CreatePlayerRequest request) {
@@ -88,6 +100,21 @@ public class AdminService {
         return keyword.isEmpty()
                 ? playerRepository.findAllPlayers()
                 : playerRepository.searchPlayers(keyword);
+    }
+
+    public List<PlayerWithStatus> searchPlayersWithStatus(SearchPlayerRequest request) {
+        List<PlayerWithStatus> result = new ArrayList<>();
+        for (Player player : searchPlayers(request)) {
+            if (!PLAYER_ROLE.equals(player.role())) {
+                continue;
+            }
+            String name = player.username();
+            boolean online = sessionRegistry.isOnline(name);
+            boolean inGame = sessionRegistry.isInActiveGame(name);
+            boolean inQueue = gameLobby.isInQueue(name);
+            result.add(new PlayerWithStatus(player, online, inGame, inQueue));
+        }
+        return result;
     }
 
     public OperationResult updateGameConfig(GameConfigRequest request) {
