@@ -11,10 +11,11 @@ public final class AdminMain {
     }
 
     public static void main(String[] args) {
+        com.wordy.client.common.UiTheme.install();
         SwingUtilities.invokeLater(AdminMain::showLogin);
     }
 
-    static void showLogin() {
+    public static void showLogin() {
         AdminLoginView view = new AdminLoginView();
         new AdminLoginController(view);
     }

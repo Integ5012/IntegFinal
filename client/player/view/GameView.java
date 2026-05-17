@@ -1,79 +1,98 @@
 package com.wordy.client.player.view;
 
+import com.wordy.client.common.UiTheme;
+
 import javax.swing.*;
 import java.awt.*;
 
 public class GameView extends JFrame {
 
-    private static final Font LETTERS_FONT = new Font("Segoe UI", Font.BOLD, 32);
-    private static final Font HEADER_FONT = new Font("Segoe UI", Font.PLAIN, 14);
-
     private final JLabel welcomeLabel;
     private final JLabel roundLabel;
     private final JLabel lettersLabel;
-
     private final JTextArea gameLog;
-
     private final JTextField wordField;
-
     private final JButton startButton;
     private final JButton submitButton;
     private final JButton leaderboardButton;
     private final JButton logoutButton;
 
     public GameView() {
-
-        setTitle("WORDY Game");
-        setSize(780, 560);
+        setTitle("WORDY — Game");
+        setSize(820, 620);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setLocationRelativeTo(null);
+        UiTheme.styleRoot(this);
 
-        welcomeLabel = new JLabel("Welcome Player");
-        welcomeLabel.setFont(HEADER_FONT);
-        roundLabel = new JLabel("Round: 0");
-        roundLabel.setFont(HEADER_FONT);
-
-        lettersLabel = new JLabel("Letters:", SwingConstants.CENTER);
-        lettersLabel.setFont(LETTERS_FONT);
-        lettersLabel.setOpaque(true);
-        lettersLabel.setBackground(new Color(245, 247, 250));
-        lettersLabel.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(new Color(180, 190, 210)),
-                BorderFactory.createEmptyBorder(12, 16, 12, 16)
-        ));
+        welcomeLabel = UiTheme.subtitleLabel("Welcome Player");
+        roundLabel = UiTheme.fieldLabel("Round: 0");
+        lettersLabel = new JLabel("—", SwingConstants.CENTER);
 
         gameLog = new JTextArea();
-        gameLog.setEditable(false);
-        gameLog.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+        UiTheme.styleTextArea(gameLog);
 
-        wordField = new JTextField(15);
+        wordField = new JTextField(18);
+        UiTheme.styleTextField(wordField);
 
         startButton = new JButton("Start Game");
         submitButton = new JButton("Submit Word");
         leaderboardButton = new JButton("Leaderboard");
         logoutButton = new JButton("Logout");
 
-        JPanel topPanel = new JPanel(new BorderLayout(0, 8));
-        topPanel.setBorder(BorderFactory.createEmptyBorder(10, 12, 8, 12));
+        UiTheme.styleSecondaryButton(startButton);
+        UiTheme.styleSuccessButton(submitButton);
+        UiTheme.styleSecondaryButton(leaderboardButton);
+        UiTheme.styleDangerButton(logoutButton);
 
-        JPanel headerRow = new JPanel(new GridLayout(2, 1, 4, 4));
-        headerRow.add(welcomeLabel);
-        headerRow.add(roundLabel);
-        topPanel.add(headerRow, BorderLayout.NORTH);
-        topPanel.add(lettersLabel, BorderLayout.CENTER);
+        JPanel root = new JPanel(new BorderLayout(0, 0));
+        root.setBackground(UiTheme.BG);
+        root.setBorder(BorderFactory.createEmptyBorder(14, 16, 14, 16));
 
-        JScrollPane scrollPane = new JScrollPane(gameLog);
+        JPanel headerCard = UiTheme.cardPanel(new BorderLayout(0, 10));
+        JPanel headerText = new JPanel(new GridLayout(2, 1, 0, 4));
+        headerText.setOpaque(false);
+        headerText.add(welcomeLabel);
+        headerText.add(roundLabel);
 
-        JPanel bottomPanel = new JPanel();
-        bottomPanel.add(wordField);
-        bottomPanel.add(submitButton);
-        bottomPanel.add(startButton);
-        bottomPanel.add(leaderboardButton);
-        bottomPanel.add(logoutButton);
+        JLabel lettersCaption = UiTheme.fieldLabel("Available letters");
+        lettersCaption.setBorder(BorderFactory.createEmptyBorder(4, 0, 0, 0));
 
-        add(topPanel, BorderLayout.NORTH);
-        add(scrollPane, BorderLayout.CENTER);
-        add(bottomPanel, BorderLayout.SOUTH);
+        JPanel lettersBlock = new JPanel(new BorderLayout(0, 8));
+        lettersBlock.setOpaque(false);
+        lettersBlock.add(lettersCaption, BorderLayout.NORTH);
+        lettersBlock.add(UiTheme.lettersPanel(lettersLabel), BorderLayout.CENTER);
+
+        headerCard.add(headerText, BorderLayout.NORTH);
+        headerCard.add(lettersBlock, BorderLayout.CENTER);
+
+        JPanel logCard = UiTheme.cardPanel(new BorderLayout());
+        JLabel logTitle = UiTheme.fieldLabel("Game log");
+        logCard.add(logTitle, BorderLayout.NORTH);
+        logCard.add(UiTheme.styleScrollPane(gameLog), BorderLayout.CENTER);
+
+        JPanel actionBar = new JPanel(new BorderLayout(12, 0));
+        actionBar.setOpaque(false);
+        actionBar.setBorder(BorderFactory.createEmptyBorder(12, 0, 0, 0));
+
+        JPanel wordRow = new JPanel(new BorderLayout(8, 0));
+        wordRow.setOpaque(false);
+        wordRow.add(UiTheme.fieldLabel("Your word"), BorderLayout.NORTH);
+        wordRow.add(wordField, BorderLayout.CENTER);
+
+        JPanel buttonRow = new JPanel(new FlowLayout(FlowLayout.RIGHT, 8, 0));
+        buttonRow.setOpaque(false);
+        buttonRow.add(startButton);
+        buttonRow.add(submitButton);
+        buttonRow.add(leaderboardButton);
+        buttonRow.add(logoutButton);
+
+        actionBar.add(wordRow, BorderLayout.CENTER);
+        actionBar.add(buttonRow, BorderLayout.EAST);
+
+        root.add(headerCard, BorderLayout.NORTH);
+        root.add(logCard, BorderLayout.CENTER);
+        root.add(actionBar, BorderLayout.SOUTH);
+        add(root);
     }
 
     public JLabel getWelcomeLabel() {
@@ -102,7 +121,7 @@ public class GameView extends JFrame {
 
     public void setLetters(String letters) {
         if (letters == null || letters.isBlank()) {
-            lettersLabel.setText("Letters:");
+            lettersLabel.setText("—");
             return;
         }
         lettersLabel.setText(letters.trim());
@@ -114,5 +133,6 @@ public class GameView extends JFrame {
 
     public void appendGameLog(String text) {
         gameLog.append(text);
+        gameLog.setCaretPosition(gameLog.getDocument().getLength());
     }
 }

@@ -28,7 +28,7 @@ public class GameController {
 
     private void initialize() {
 
-        view.getWelcomeLabel().setText("Welcome " + model.getUsername());
+        view.getWelcomeLabel().setText("Welcome, " + model.getUsername());
 
         view.getStartButton().addActionListener(e -> startGame());
 

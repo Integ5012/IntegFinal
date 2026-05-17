@@ -1,16 +1,14 @@
 package com.wordy.client.player.model;
 
-import com.wordy.common.EndpointConfig;
 import com.wordy.grpc.*;
 import io.grpc.ManagedChannel;
-import java.util.Iterator;
 import io.grpc.ManagedChannelBuilder;
+
+import java.util.Iterator;
 
 public class PlayerModel {
 
     private final ManagedChannel channel;
-
-    // gRPC blocking stubs
     private final LoginServiceGrpc.LoginServiceBlockingStub loginStub;
     private final GameServiceGrpc.GameServiceBlockingStub gameStub;
     private final LeaderboardServiceGrpc.LeaderboardServiceBlockingStub leaderboardStub;
@@ -18,8 +16,8 @@ public class PlayerModel {
     private String sessionId;
     private String username;
 
-    public PlayerModel() {
-        channel = ManagedChannelBuilder.forAddress(EndpointConfig.host(), EndpointConfig.clientPort())
+    public PlayerModel(String host, int port) {
+        channel = ManagedChannelBuilder.forAddress(host, port)
                 .usePlaintext()
                 .build();
 
@@ -27,10 +25,11 @@ public class PlayerModel {
         gameStub = GameServiceGrpc.newBlockingStub(channel);
         leaderboardStub = LeaderboardServiceGrpc.newBlockingStub(channel);
     }
+
     public LoginResponse login(String username, String password) {
         LoginRequest request = LoginRequest.newBuilder()
                 .setUsername(username)
-                .setPassword(password)
+                .setPassword(password == null ? "" : password)
                 .build();
 
         LoginResponse response = loginStub.login(request);
@@ -43,12 +42,26 @@ public class PlayerModel {
         return response;
     }
 
+    public BasicResponse register(String username) {
+        return loginStub.registerPlayer(RegisterPlayerRequest.newBuilder()
+                .setUsername(username)
+                .build());
+    }
+
     public BasicResponse logout() {
+        if (sessionId == null || sessionId.isBlank()) {
+            return BasicResponse.newBuilder()
+                    .setSuccess(true)
+                    .setMessage("Already logged out")
+                    .build();
+        }
         LogoutRequest request = LogoutRequest.newBuilder()
                 .setSessionId(sessionId)
                 .build();
-
-        return loginStub.logout(request);
+        BasicResponse response = loginStub.logout(request);
+        sessionId = null;
+        username = null;
+        return response;
     }
 
     public Iterator<GameEvent> joinGame() {
@@ -67,6 +80,7 @@ public class PlayerModel {
 
         return gameStub.submitWord(request);
     }
+
     public LeaderboardResponse getLeaderboard() {
         return leaderboardStub.getTopPlayers(Empty.newBuilder().build());
     }

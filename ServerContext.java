@@ -39,17 +39,22 @@ public final class ServerContext {
         SessionRegistry sessionRegistry = SessionRegistry.getInstance();
 
         AuthService authService = new AuthService(repositories.players(), sessionRegistry);
-        AdminService adminService = new AdminService(repositories.players(), repositories.config());
-        LeaderboardService leaderboardService = new LeaderboardService(
-                repositories.players(),
-                repositories.leaderboard()
-        );
 
         GameLobby gameLobby = new GameLobby(
                 WordDictionary.loadDefault(),
                 new LetterGenerator(),
                 repositories.config(),
                 sessionRegistry,
+                repositories.players(),
+                repositories.leaderboard()
+        );
+        AdminService adminService = new AdminService(
+                repositories.players(),
+                repositories.config(),
+                sessionRegistry,
+                gameLobby
+        );
+        LeaderboardService leaderboardService = new LeaderboardService(
                 repositories.players(),
                 repositories.leaderboard()
         );

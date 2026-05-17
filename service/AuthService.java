@@ -23,20 +23,33 @@ public class AuthService {
         String trimmedUsername = username == null ? "" : username.trim();
         String trimmedPassword = password == null ? "" : password;
 
-        if (trimmedUsername.isEmpty() || trimmedPassword.isEmpty()) {
-            return new AuthResult(false, "Username and password are required", null, null);
+        if (trimmedUsername.isEmpty()) {
+            return new AuthResult(false, "Username is required", null, null);
         }
 
         Player player = playerRepository.findByUsername(trimmedUsername);
-        if (player == null || !Objects.equals(player.password(), trimmedPassword)) {
+        if (player == null) {
             return new AuthResult(false, "Invalid username or password", null, null);
+        }
+
+        String role = player.role() == null ? "PLAYER" : player.role();
+        boolean playerRole = "PLAYER".equalsIgnoreCase(role);
+        if (playerRole) {
+            if (!trimmedPassword.isEmpty()
+                    && !Objects.equals(player.password(), trimmedPassword)) {
+                return new AuthResult(false, "Invalid username or password", null, null);
+            }
+        } else {
+            if (trimmedPassword.isEmpty()
+                    || !Objects.equals(player.password(), trimmedPassword)) {
+                return new AuthResult(false, "Invalid username or password", null, null);
+            }
         }
 
         // Use canonical username from storage (matches DB / in-memory record)
         String accountName = player.username();
         boolean hadPreviousSession = sessionRegistry.getCurrentSessionId(accountName).isPresent();
         String sessionId = sessionRegistry.createSession(accountName);
-        String role = player.role() == null ? "PLAYER" : player.role();
         String message = hadPreviousSession
                 ? "Login successful. Previous session was disconnected."
                 : "Login successful";
@@ -56,5 +69,18 @@ public class AuthService {
 
         sessionRegistry.removeSession(sessionId);
         return OperationResult.success("Logged out successfully");
+    }
+
+    public OperationResult registerPlayer(String username) {
+        String trimmed = username == null ? "" : username.trim();
+        if (trimmed.isEmpty()) {
+            return OperationResult.failure("Username is required");
+        }
+        if (playerRepository.findByUsername(trimmed) != null) {
+            return OperationResult.failure("Username already exists");
+        }
+        return playerRepository.createPlayer(trimmed, "", "PLAYER")
+                ? OperationResult.success("Account created. You can log in with your username.")
+                : OperationResult.failure("Failed to create account");
     }
 }

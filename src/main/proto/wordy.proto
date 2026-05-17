@@ -23,6 +23,7 @@ message BasicResponse {
 service LoginService {
   rpc Login(LoginRequest) returns (LoginResponse);
   rpc Logout(LogoutRequest) returns (BasicResponse);
+  rpc RegisterPlayer(RegisterPlayerRequest) returns (BasicResponse);
 }
 
 message LoginRequest {
@@ -39,6 +40,10 @@ message LoginResponse {
 
 message LogoutRequest {
   string sessionId = 1;
+}
+
+message RegisterPlayerRequest {
+  string username = 1;
 }
 
 // ==========================
@@ -92,6 +97,9 @@ message Player {
   int32 id = 1;
   string username = 2;
   int32 wins = 3;
+  bool online = 4;
+  bool in_game = 5;
+  bool in_queue = 6;
 }
 
 // --- Config ---

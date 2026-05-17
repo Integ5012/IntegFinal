@@ -21,7 +21,10 @@ public final class EndpointConfig {
 
     public static String host() {
         String h = System.getenv("WORDY_SERVER_HOST");
-        return h != null && !h.isBlank() ? h.trim() : "localhost";
+        if (h != null && !h.isBlank()) {
+            return h.trim();
+        }
+        return ClientConfig.load().host();
     }
 
     /**
@@ -47,6 +50,10 @@ public final class EndpointConfig {
         fromEnv = parseEnvPort("WORDY_PORT");
         if (fromEnv != null) {
             return fromEnv;
+        }
+        int fromConfig = ClientConfig.load().port();
+        if (Files.isRegularFile(Path.of(ClientConfig.FILE_NAME))) {
+            return fromConfig;
         }
         Path file = Path.of(PORT_FILE_NAME);
         if (Files.isRegularFile(file)) {

@@ -1,9 +1,9 @@
 package com.wordy.client.admin.view;
 
 import com.wordy.client.common.ServerConnectionPanel;
+import com.wordy.client.common.UiTheme;
 
 import javax.swing.*;
-import javax.swing.border.EmptyBorder;
 import java.awt.*;
 
 public class AdminLoginView extends JFrame {
@@ -13,87 +13,65 @@ public class AdminLoginView extends JFrame {
     public JPasswordField passwordField;
     public JButton loginButton;
 
-    // THEME
-    private final Color bg = new Color(46, 51, 66);
-    private final Color card = new Color(35, 37, 45);
-    private final Color accent = new Color(99, 102, 241);
-    private final Color text = Color.WHITE;
-
     public AdminLoginView() {
-        setTitle("Admin Login");
-        setSize(420, 480);
+        setTitle("WORDY — Admin Login");
+        setSize(440, 520);
         setDefaultCloseOperation(EXIT_ON_CLOSE);
         setLocationRelativeTo(null);
+        UiTheme.styleRoot(this);
 
-        setLayout(new GridBagLayout());
-        getContentPane().setBackground(bg);
+        JPanel card = UiTheme.cardPanel(null);
+        card.setLayout(new BoxLayout(card, BoxLayout.Y_AXIS));
 
-        add(createLoginCard());
-
-        setVisible(true);
-    }
-
-    private JPanel createLoginCard() {
-        JPanel panel = new JPanel();
-        panel.setBackground(card);
-        panel.setPreferredSize(new Dimension(340, 400));
-        panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
-        panel.setBorder(new EmptyBorder(20, 20, 20, 20));
+        JLabel title = UiTheme.titleLabel("Admin");
+        title.setAlignmentX(Component.CENTER_ALIGNMENT);
+        JLabel subtitle = UiTheme.subtitleLabel("Wordy control panel");
+        subtitle.setAlignmentX(Component.CENTER_ALIGNMENT);
 
         connectionPanel = new ServerConnectionPanel();
         connectionPanel.setAlignmentX(Component.CENTER_ALIGNMENT);
-        connectionPanel.setMaximumSize(new Dimension(Integer.MAX_VALUE, 120));
+        connectionPanel.setMaximumSize(new Dimension(Integer.MAX_VALUE, 160));
 
-        // TITLE
-        JLabel title = new JLabel("Admin Login");
-        title.setForeground(text);
-        title.setFont(new Font("Segoe UI", Font.BOLD, 20));
-        title.setAlignmentX(Component.CENTER_ALIGNMENT);
-
-        JLabel subtitle = new JLabel("Wordy System");
-        subtitle.setForeground(Color.GRAY);
-        subtitle.setAlignmentX(Component.CENTER_ALIGNMENT);
-
-        JLabel username = new JLabel("Username: ");
-        username.setForeground(Color.WHITE);
-        username.setAlignmentX(Component.RIGHT_ALIGNMENT);
-        username.setMaximumSize(new Dimension(Integer.MAX_VALUE,30));
-
-        JLabel password = new JLabel("Password: ");
-        password.setForeground(Color.WHITE);
-        password.setAlignmentX(Component.RIGHT_ALIGNMENT);
-        password.setMaximumSize(new Dimension(Integer.MAX_VALUE,30));
-
-
-        // FIELDS
+        JLabel usernameLbl = UiTheme.fieldLabel("Username");
+        usernameLbl.setAlignmentX(Component.LEFT_ALIGNMENT);
         usernameField = new JTextField();
-        usernameField.setMaximumSize(new Dimension(Integer.MAX_VALUE,30));
+        UiTheme.styleTextField(usernameField);
+        usernameField.setMaximumSize(new Dimension(Integer.MAX_VALUE, 40));
+        usernameField.setAlignmentX(Component.LEFT_ALIGNMENT);
+
+        JLabel passwordLbl = UiTheme.fieldLabel("Password");
+        passwordLbl.setAlignmentX(Component.LEFT_ALIGNMENT);
         passwordField = new JPasswordField();
-        passwordField.setMaximumSize(new Dimension(Integer.MAX_VALUE, 30));
+        UiTheme.stylePasswordField(passwordField);
+        passwordField.setMaximumSize(new Dimension(Integer.MAX_VALUE, 40));
+        passwordField.setAlignmentX(Component.LEFT_ALIGNMENT);
 
-        // BUTTON
         loginButton = new JButton("Login");
-        loginButton.setFocusPainted(false);
-        loginButton.setBackground(accent);
-        loginButton.setForeground(Color.WHITE);
+        UiTheme.stylePrimaryButton(loginButton);
         loginButton.setAlignmentX(Component.CENTER_ALIGNMENT);
+        loginButton.setMaximumSize(new Dimension(200, 44));
 
-        // SPACING
-        panel.add(title);
-        panel.add(Box.createRigidArea(new Dimension(0, 5)));
-        panel.add(subtitle);
-        panel.add(Box.createRigidArea(new Dimension(0, 12)));
-        panel.add(connectionPanel);
-        panel.add(Box.createRigidArea(new Dimension(0, 12)));
+        card.add(title);
+        card.add(Box.createVerticalStrut(4));
+        card.add(subtitle);
+        card.add(Box.createVerticalStrut(18));
+        card.add(connectionPanel);
+        card.add(Box.createVerticalStrut(16));
+        card.add(usernameLbl);
+        card.add(Box.createVerticalStrut(6));
+        card.add(usernameField);
+        card.add(Box.createVerticalStrut(14));
+        card.add(passwordLbl);
+        card.add(Box.createVerticalStrut(6));
+        card.add(passwordField);
+        card.add(Box.createVerticalStrut(22));
+        card.add(loginButton);
 
-        panel.add(username);
-        panel.add(usernameField);
-        panel.add(Box.createRigidArea(new Dimension(0, 20)));
-        panel.add(password);
-        panel.add(passwordField);
-        panel.add(Box.createRigidArea(new Dimension(0, 20)));
-        panel.add(loginButton);
+        JPanel wrapper = new JPanel(new GridBagLayout());
+        wrapper.setBackground(UiTheme.BG);
+        wrapper.add(card);
+        add(wrapper);
 
-        return panel;
+        setVisible(true);
     }
 }

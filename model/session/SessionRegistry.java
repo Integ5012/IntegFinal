@@ -1,5 +1,6 @@
 package com.wordy.server.model.session;
 
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -83,6 +84,17 @@ public class SessionRegistry {
             usernameToSession.remove(username, sessionId);
             usernamesInActiveGame.remove(username);
         }
+    }
+
+    public boolean isOnline(String username) {
+        if (username == null || username.isBlank()) {
+            return false;
+        }
+        return username.equals(usernameToSession.get(username));
+    }
+
+    public Set<String> getOnlineUsernames() {
+        return new HashSet<>(usernameToSession.keySet());
     }
 
     private void notifyRevoked(String username, String revokedSessionId) {
