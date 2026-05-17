@@ -5,6 +5,9 @@ import java.awt.*;
 
 public class GameView extends JFrame {
 
+    private static final Font LETTERS_FONT = new Font("Segoe UI", Font.BOLD, 32);
+    private static final Font HEADER_FONT = new Font("Segoe UI", Font.PLAIN, 14);
+
     private final JLabel welcomeLabel;
     private final JLabel roundLabel;
     private final JLabel lettersLabel;
@@ -21,17 +24,27 @@ public class GameView extends JFrame {
     public GameView() {
 
         setTitle("WORDY Game");
-        setSize(700, 500);
+        setSize(780, 560);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setLocationRelativeTo(null);
 
-        // INITIALIZE COMPONENTS
         welcomeLabel = new JLabel("Welcome Player");
+        welcomeLabel.setFont(HEADER_FONT);
         roundLabel = new JLabel("Round: 0");
-        lettersLabel = new JLabel("Letters:");
+        roundLabel.setFont(HEADER_FONT);
+
+        lettersLabel = new JLabel("Letters:", SwingConstants.CENTER);
+        lettersLabel.setFont(LETTERS_FONT);
+        lettersLabel.setOpaque(true);
+        lettersLabel.setBackground(new Color(245, 247, 250));
+        lettersLabel.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(new Color(180, 190, 210)),
+                BorderFactory.createEmptyBorder(12, 16, 12, 16)
+        ));
 
         gameLog = new JTextArea();
         gameLog.setEditable(false);
+        gameLog.setFont(new Font("Segoe UI", Font.PLAIN, 13));
 
         wordField = new JTextField(15);
 
@@ -40,26 +53,24 @@ public class GameView extends JFrame {
         leaderboardButton = new JButton("Leaderboard");
         logoutButton = new JButton("Logout");
 
-        // TOP PANEL
-        JPanel topPanel = new JPanel(new GridLayout(3, 1));
+        JPanel topPanel = new JPanel(new BorderLayout(0, 8));
+        topPanel.setBorder(BorderFactory.createEmptyBorder(10, 12, 8, 12));
 
-        topPanel.add(welcomeLabel);
-        topPanel.add(roundLabel);
-        topPanel.add(lettersLabel);
+        JPanel headerRow = new JPanel(new GridLayout(2, 1, 4, 4));
+        headerRow.add(welcomeLabel);
+        headerRow.add(roundLabel);
+        topPanel.add(headerRow, BorderLayout.NORTH);
+        topPanel.add(lettersLabel, BorderLayout.CENTER);
 
-        // CENTER
         JScrollPane scrollPane = new JScrollPane(gameLog);
 
-        // BOTTOM PANEL
         JPanel bottomPanel = new JPanel();
-
         bottomPanel.add(wordField);
         bottomPanel.add(submitButton);
         bottomPanel.add(startButton);
         bottomPanel.add(leaderboardButton);
         bottomPanel.add(logoutButton);
 
-        // FRAME
         add(topPanel, BorderLayout.NORTH);
         add(scrollPane, BorderLayout.CENTER);
         add(bottomPanel, BorderLayout.SOUTH);
@@ -90,7 +101,11 @@ public class GameView extends JFrame {
     }
 
     public void setLetters(String letters) {
-        lettersLabel.setText("Letters: " + letters);
+        if (letters == null || letters.isBlank()) {
+            lettersLabel.setText("Letters:");
+            return;
+        }
+        lettersLabel.setText(letters.trim());
     }
 
     public void setRoundLabel(String text) {

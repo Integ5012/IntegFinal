@@ -12,10 +12,16 @@ public class GameController {
 
     private final PlayerModel model;
     private final GameView view;
+    private final Runnable onReturnToLogin;
 
-    public GameController(PlayerModel model, GameView view) {
+    /** Server sends ROUND every second as a timer tick; only log once per round number. */
+    private int lastLoggedRound;
+    private String lastWaitingMessage;
+
+    public GameController(PlayerModel model, GameView view, Runnable onReturnToLogin) {
         this.model = model;
         this.view = view;
+        this.onReturnToLogin = onReturnToLogin;
 
         initialize();
     }
@@ -54,34 +60,75 @@ public class GameController {
         }).start();
     }
 
+    private static String formatLetters(java.util.List<String> letters) {
+        return String.join("   ", letters);
+    }
+
+    private void appendWaitingMessage(String message) {
+        if (message == null || message.isBlank()) {
+            return;
+        }
+        if (message.equals(lastWaitingMessage)) {
+            return;
+        }
+        if (message.contains(" joined the queue for the next game")) {
+            return;
+        }
+        lastWaitingMessage = message;
+        view.appendGameLog(message + "\n");
+    }
+
     private void processEvent(GameEvent event) {
 
         String type = event.getEventType();
 
         switch (type) {
             case "WAITING":
-                view.appendGameLog(event.getWinner() + "\n");
+                appendWaitingMessage(event.getWinner());
+                break;
+
+            case "PLAYER_JOINED":
+                String joinDetail = event.getBestWord();
+                if (joinDetail != null && joinDetail.startsWith("Round wins")) {
+                    view.appendGameLog("Joined the game in progress. " + joinDetail + "\n");
+                } else if (event.getWinner() != null && joinDetail != null && !joinDetail.isBlank()) {
+                    view.appendGameLog(event.getWinner() + " " + joinDetail + ".\n");
+                }
                 break;
 
             case "START":
-                view.appendGameLog("Game Started\n");
+                view.appendGameLog("Game started.\n");
+                view.getStartButton().setEnabled(false);
                 break;
 
             case "ROUND":
-                view.setRoundLabel("Round: " + event.getRound());
-                view.setLetters(String.join(" ", event.getLettersList()));
-                view.appendGameLog("New Round Started\n");
+                int round = event.getRound();
+                int timeLeft = event.getTimeLeft();
+                view.setRoundLabel("Round: " + round + "  |  Time left: " + timeLeft + "s");
+                if (!event.getLettersList().isEmpty()) {
+                    view.setLetters(formatLetters(event.getLettersList()));
+                }
+                if (round != lastLoggedRound) {
+                    lastLoggedRound = round;
+                    view.appendGameLog("Round " + round + " started (" + timeLeft + "s to submit a word).\n");
+                }
                 break;
 
             case "RESULT":
-                view.appendGameLog(
-                        "Winner: " + event.getWinner() +
-                                " | Word: " + event.getBestWord() + "\n"
-                );
+                if (event.getWinner() == null || event.getWinner().isBlank()) {
+                    view.appendGameLog("Round " + event.getRound() + " ended — no winner (tie or no valid words).\n");
+                } else {
+                    view.appendGameLog(
+                            "Round " + event.getRound() + " winner: " + event.getWinner()
+                                    + " | Word: " + event.getBestWord() + "\n"
+                    );
+                }
                 break;
 
             case "END":
-                view.appendGameLog("Game Finished\n");
+                view.appendGameLog("Game finished. Overall winner: " + event.getWinner() + "\n");
+                view.getStartButton().setEnabled(true);
+                lastLoggedRound = 0;
                 break;
         }
     }
@@ -122,14 +169,13 @@ public class GameController {
     }
 
     private void logout() {
-
         try {
             model.logout();
-            model.shutdown();
-
         } catch (Exception ignored) {
+            // still return to login
         }
-
-        System.exit(0);
+        model.shutdown();
+        view.dispose();
+        onReturnToLogin.run();
     }
 }

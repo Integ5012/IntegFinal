@@ -8,6 +8,7 @@ public class GamePlayer {
     private final String username;
     private final String sessionId;
     private final StreamObserver<GameEvent> eventObserver;
+    private volatile boolean connected = true;
     private int roundWins;
 
     public GamePlayer(String username, String sessionId, StreamObserver<GameEvent> eventObserver) {
@@ -39,5 +40,13 @@ public class GamePlayer {
 
     public boolean hasReachedWins(int targetWins) {
         return roundWins >= targetWins;
+    }
+
+    public boolean isConnected() {
+        return connected;
+    }
+
+    public void setConnected(boolean connected) {
+        this.connected = connected;
     }
 }

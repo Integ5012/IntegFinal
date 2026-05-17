@@ -8,6 +8,7 @@ import com.wordy.server.model.repository.PlayerRepository;
 import com.wordy.server.model.session.SessionRegistry;
 import com.wordy.server.model.session.SessionRevocationListener;
 import io.grpc.Status;
+import io.grpc.stub.ServerCallStreamObserver;
 import io.grpc.stub.StreamObserver;
 
 import java.util.ArrayList;
@@ -61,6 +62,8 @@ public class GameLobby implements SessionRevocationListener {
             return "Session expired or replaced by a new login";
         }
 
+        cleanupAbandonedSession();
+
         if (activeSession != null && activeSession.hasPlayer(username)) {
             return "Already in an active game";
         }
@@ -71,6 +74,17 @@ public class GameLobby implements SessionRevocationListener {
 
         if (!sessionRegistry.tryEnterGame(username)) {
             return "Account already has an active game session";
+        }
+
+        registerDisconnectHandler(username, sessionId, observer);
+
+        if (activeSession != null) {
+            GamePlayer lateJoiner = new GamePlayer(username, sessionId, observer);
+            if (activeSession.addPlayer(lateJoiner)) {
+                return "Joined active game";
+            }
+            sessionRegistry.leaveGame(username);
+            return "Could not join the active game";
         }
 
         waitingPlayers.add(new QueuedPlayer(username, sessionId, observer));
@@ -88,6 +102,23 @@ public class GameLobby implements SessionRevocationListener {
 
     public GameSession getActiveSession() {
         return activeSession;
+    }
+
+    public synchronized boolean hasActiveGame() {
+        return activeSession != null;
+    }
+
+    public synchronized boolean isInQueue(String username) {
+        for (QueuedPlayer queued : waitingPlayers) {
+            if (queued.username().equals(username)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public synchronized int getQueueSize() {
+        return waitingPlayers.size();
     }
 
     @Override
@@ -141,7 +172,7 @@ public class GameLobby implements SessionRevocationListener {
             return;
         }
 
-        List<QueuedPlayer> matchedPlayers = drainWaitingQueue();
+        List<QueuedPlayer> matchedPlayers = takeNextPlayers(MIN_PLAYERS);
         List<GamePlayer> players = matchedPlayers.stream()
                 .map(q -> new GamePlayer(q.username(), q.sessionId(), q.observer()))
                 .toList();
@@ -157,6 +188,47 @@ public class GameLobby implements SessionRevocationListener {
                 leaderboardRepository
         );
         activeSession.start();
+    }
+
+    private List<QueuedPlayer> takeNextPlayers(int count) {
+        int toTake = Math.min(count, waitingPlayers.size());
+        List<QueuedPlayer> matched = new ArrayList<>(waitingPlayers.subList(0, toTake));
+        waitingPlayers.subList(0, toTake).clear();
+        return matched;
+    }
+
+    private void cleanupAbandonedSession() {
+        if (activeSession != null && !activeSession.hasConnectedPlayers()) {
+            activeSession.abandon("Previous game ended (players disconnected).");
+        }
+    }
+
+    private void registerDisconnectHandler(
+            String username,
+            String sessionId,
+            StreamObserver<GameEvent> observer) {
+        if (observer instanceof ServerCallStreamObserver<GameEvent> serverObserver) {
+            serverObserver.setOnCancelHandler(() -> handleClientDisconnect(username, sessionId));
+        }
+    }
+
+    public synchronized void handleClientDisconnect(String username, String sessionId) {
+        waitingPlayers.removeIf(q -> q.username().equals(username));
+
+        if (activeSession != null && activeSession.hasPlayer(username)) {
+            activeSession.onPlayerDisconnected(username);
+            return;
+        }
+
+        sessionRegistry.leaveGame(username);
+
+        if (waitingPlayers.isEmpty()) {
+            cancelWaitTimeout();
+        } else if (waitingPlayers.size() == 1) {
+            scheduleWaitTimeout();
+        } else if (activeSession == null) {
+            startGameFromQueue();
+        }
     }
 
     private synchronized void clearActiveSession() {
@@ -186,6 +258,12 @@ public class GameLobby implements SessionRevocationListener {
         if (waitTimeoutTask != null) {
             waitTimeoutTask.cancel(false);
             waitTimeoutTask = null;
+        }
+    }
+
+    private synchronized void broadcastQueueUpdate(String message) {
+        for (QueuedPlayer queued : waitingPlayers) {
+            notifyWaiting(queued.observer(), message);
         }
     }
 
