@@ -1,6 +1,7 @@
 package com.wordy.client.admin.controller;
 
-import com.wordy.client.admin.model.AdminModel;
+import com.wordy.client.admin.service.AdminPlayerService;
+import com.wordy.client.common.UiTheme;
 import com.wordy.client.admin.view.AdminDashboardView;
 import com.wordy.grpc.BasicResponse;
 import com.wordy.grpc.Player;
@@ -11,14 +12,18 @@ import javax.swing.table.DefaultTableModel;
 import java.awt.event.ActionEvent;
 
 public class AdminDashboardController {
+
     private final AdminDashboardView view;
-    private final AdminModel model;
+    private final AdminPlayerService playerService;
     private final Runnable onLogout;
     private final Timer refreshTimer;
 
-    public AdminDashboardController(AdminDashboardView view, AdminModel model, Runnable onLogout) {
+    public AdminDashboardController(
+            AdminDashboardView view,
+            AdminPlayerService playerService,
+            Runnable onLogout) {
         this.view = view;
-        this.model = model;
+        this.playerService = playerService;
         this.onLogout = onLogout;
 
         this.view.searchBtn.addActionListener(this::handleSearch);
@@ -39,18 +44,18 @@ public class AdminDashboardController {
     private void handleLogout() {
         refreshTimer.stop();
         try {
-            model.logout();
+            playerService.logout();
         } catch (Exception ignored) {
             // return to login anyway
         }
-        model.shutdown();
+        playerService.close();
         view.dispose();
         onLogout.run();
     }
 
     private void loadConfig() {
         try {
-            var config = model.getGameConfig();
+            var config = playerService.getGameConfig();
             view.waitTimeField.setText(String.valueOf(config.getWaitTime()));
             view.roundTimeField.setText(String.valueOf(config.getRoundTime()));
         } catch (Exception ex) {
@@ -62,18 +67,16 @@ public class AdminDashboardController {
     }
 
     private void handleSearch(ActionEvent e) {
-        String keyword = view.searchField.getText().trim();
-        loadTableData(keyword);
+        loadTableData(view.searchField.getText().trim());
     }
 
     private void loadTableData(String keyword) {
         try {
-            SearchPlayerResponse response = model.searchPlayer(keyword);
+            SearchPlayerResponse response = playerService.searchPlayers(keyword);
             DefaultTableModel tableModel = view.tableModel;
             tableModel.setRowCount(0);
 
             for (Player p : response.getPlayersList()) {
-                String status = formatStatus(p);
                 tableModel.addRow(new Object[]{
                         p.getId(),
                         p.getUsername(),
@@ -81,12 +84,12 @@ public class AdminDashboardController {
                         p.getOnline() ? "Yes" : "No",
                         p.getInGame() ? "Yes" : "No",
                         p.getInQueue() ? "Yes" : "No",
-                        status
+                        formatStatus(p)
                 });
             }
         } catch (Exception ex) {
-            JOptionPane.showMessageDialog(view, "Error loading players: " + ex.getMessage(), "Error",
-                    JOptionPane.ERROR_MESSAGE);
+            JOptionPane.showMessageDialog(view, "Error loading players: " + ex.getMessage(),
+                    "Error", JOptionPane.ERROR_MESSAGE);
         }
     }
 
@@ -105,18 +108,20 @@ public class AdminDashboardController {
 
     private void handleAdd(ActionEvent e) {
         JTextField usernameField = new JTextField();
-        JPasswordField passwordField = new JPasswordField();
-        Object[] inputs = {"Username:", usernameField, "Password:", passwordField};
+        UiTheme.styleTextField(usernameField);
+        Object[] inputs = {"Username:", usernameField};
 
         int option = JOptionPane.showConfirmDialog(view, inputs, "Add New Player",
                 JOptionPane.OK_CANCEL_OPTION);
 
         if (option == JOptionPane.OK_OPTION) {
+            String username = usernameField.getText().trim();
+            if (username.isEmpty()) {
+                JOptionPane.showMessageDialog(view, "Username is required.");
+                return;
+            }
             try {
-                BasicResponse response = model.createPlayer(
-                        usernameField.getText().trim(),
-                        new String(passwordField.getPassword())
-                );
+                BasicResponse response = playerService.createPlayer(username);
 
                 if (response.getSuccess()) {
                     loadTableData(view.searchField.getText().trim());
@@ -132,8 +137,8 @@ public class AdminDashboardController {
     private void handleEdit(ActionEvent e) {
         int selectedRow = view.playerTable.getSelectedRow();
         if (selectedRow == -1) {
-            JOptionPane.showMessageDialog(view, "Please select a player from the table to edit.", "Warning",
-                    JOptionPane.WARNING_MESSAGE);
+            JOptionPane.showMessageDialog(view, "Please select a player from the table to edit.",
+                    "Warning", JOptionPane.WARNING_MESSAGE);
             return;
         }
 
@@ -155,12 +160,11 @@ public class AdminDashboardController {
 
         if (option == JOptionPane.OK_OPTION) {
             try {
-                BasicResponse response = model.updatePlayer(
+                BasicResponse response = playerService.updatePlayer(
                         id,
                         usernameField.getText().trim(),
                         new String(passwordField.getPassword()),
-                        Integer.parseInt(winsField.getText().trim())
-                );
+                        Integer.parseInt(winsField.getText().trim()));
 
                 if (response.getSuccess()) {
                     loadTableData(view.searchField.getText().trim());
@@ -178,8 +182,8 @@ public class AdminDashboardController {
     private void handleDelete(ActionEvent e) {
         int selectedRow = view.playerTable.getSelectedRow();
         if (selectedRow == -1) {
-            JOptionPane.showMessageDialog(view, "Please select a player from the table to delete.", "Warning",
-                    JOptionPane.WARNING_MESSAGE);
+            JOptionPane.showMessageDialog(view, "Please select a player from the table to delete.",
+                    "Warning", JOptionPane.WARNING_MESSAGE);
             return;
         }
 
@@ -193,7 +197,7 @@ public class AdminDashboardController {
 
         if (confirm == JOptionPane.YES_OPTION) {
             try {
-                BasicResponse response = model.deletePlayer(id);
+                BasicResponse response = playerService.deletePlayer(id);
                 if (response.getSuccess()) {
                     loadTableData(view.searchField.getText().trim());
                 } else {
@@ -211,25 +215,26 @@ public class AdminDashboardController {
             int roundTime = Integer.parseInt(view.roundTimeField.getText().trim());
 
             if (waitTime <= 0 || roundTime <= 0) {
-                JOptionPane.showMessageDialog(view, "Times must be greater than 0.", "Warning",
-                        JOptionPane.WARNING_MESSAGE);
+                JOptionPane.showMessageDialog(view, "Times must be greater than 0.",
+                        "Warning", JOptionPane.WARNING_MESSAGE);
                 return;
             }
 
-            BasicResponse response = model.updateConfig(waitTime, roundTime);
+            BasicResponse response = playerService.updateConfig(waitTime, roundTime);
 
             if (response.getSuccess()) {
-                JOptionPane.showMessageDialog(view, "Game configurations updated successfully!", "Success",
-                        JOptionPane.INFORMATION_MESSAGE);
+                JOptionPane.showMessageDialog(view, "Game configurations updated successfully!",
+                        "Success", JOptionPane.INFORMATION_MESSAGE);
             } else {
-                JOptionPane.showMessageDialog(view, "Failed to update configs: " + response.getMessage(), "Error",
-                        JOptionPane.ERROR_MESSAGE);
+                JOptionPane.showMessageDialog(view, "Failed to update configs: " + response.getMessage(),
+                        "Error", JOptionPane.ERROR_MESSAGE);
             }
         } catch (NumberFormatException ex) {
-            JOptionPane.showMessageDialog(view, "Please enter valid numbers for the timers.", "Invalid Input",
-                    JOptionPane.WARNING_MESSAGE);
+            JOptionPane.showMessageDialog(view, "Please enter valid numbers for the timers.",
+                    "Invalid Input", JOptionPane.WARNING_MESSAGE);
         } catch (Exception ex) {
-            JOptionPane.showMessageDialog(view, "Error: " + ex.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+            JOptionPane.showMessageDialog(view, "Error: " + ex.getMessage(),
+                    "Error", JOptionPane.ERROR_MESSAGE);
         }
     }
 }

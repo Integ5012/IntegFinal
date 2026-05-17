@@ -40,7 +40,7 @@ public final class EndpointConfig {
     }
 
     /**
-     * Port clients connect to: explicit env wins, else {@value #PORT_FILE_NAME}, else default.
+     * Port clients connect to: env, saved client properties, published port file, then default.
      */
     public static int clientPort() {
         Integer fromEnv = parseEnvPort("WORDY_SERVER_PORT");
@@ -51,10 +51,14 @@ public final class EndpointConfig {
         if (fromEnv != null) {
             return fromEnv;
         }
-        int fromConfig = ClientConfig.load().port();
         if (Files.isRegularFile(Path.of(ClientConfig.FILE_NAME))) {
-            return fromConfig;
+            return ClientConfig.load().port();
         }
+        return readPublishedPort();
+    }
+
+    /** Port written by {@link com.wordy.server.WordyServer} when it starts (may differ from 9090). */
+    public static int readPublishedPort() {
         Path file = Path.of(PORT_FILE_NAME);
         if (Files.isRegularFile(file)) {
             try {

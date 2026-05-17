@@ -33,16 +33,30 @@ public final class ClientConfig {
             }
         }
         String host = props.getProperty(KEY_HOST, "localhost");
-        int port = EndpointConfig.DEFAULT_PORT;
+        int port = EndpointConfig.readPublishedPort();
         String portRaw = props.getProperty(KEY_PORT);
         if (portRaw != null && !portRaw.isBlank()) {
             try {
                 port = Integer.parseInt(portRaw.trim());
             } catch (NumberFormatException ignored) {
-                // keep default
+                // keep published/default port
             }
         }
         return new Settings(host.trim(), port);
+    }
+
+    /** Uses form values; falls back to the port file the server writes on startup. */
+    public static Settings resolve(String hostInput, String portInput) {
+        String host = hostInput == null || hostInput.isBlank() ? "localhost" : hostInput.trim();
+        int port = EndpointConfig.readPublishedPort();
+        if (portInput != null && !portInput.isBlank()) {
+            try {
+                port = Integer.parseInt(portInput.trim());
+            } catch (NumberFormatException ignored) {
+                // keep published/default port
+            }
+        }
+        return new Settings(host, port);
     }
 
     public static void save(String host, int port) throws IOException {

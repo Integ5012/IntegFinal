@@ -1,6 +1,9 @@
 package com.wordy.client.player.controller;
 
-import com.wordy.client.player.model.PlayerModel;
+import com.wordy.client.common.GrpcConnectionFactory;
+import com.wordy.client.player.model.PlayerSession;
+import com.wordy.client.player.service.PlayerAuthService;
+import com.wordy.client.player.service.PlayerGameService;
 import com.wordy.client.player.view.GameView;
 import com.wordy.client.player.view.LoginView;
 import com.wordy.common.ClientConfig;
@@ -25,10 +28,9 @@ public class LoginController {
         view.getCreateAccountButton().addActionListener(e -> handleCreateAccount());
     }
 
-    private PlayerModel connectModel() throws Exception {
-        view.getConnectionPanel().saveSettings();
-        ClientConfig.Settings settings = ClientConfig.load();
-        return new PlayerModel(settings.host(), settings.port());
+    private ClientConfig.Settings connectionSettings() {
+        var panel = view.getConnectionPanel();
+        return ClientConfig.resolve(panel.getHost(), panel.getPortText());
     }
 
     private void handleLogin() {
@@ -38,33 +40,28 @@ public class LoginController {
             return;
         }
 
-        PlayerModel model = null;
-        try {
-            model = connectModel();
-            LoginResponse response = model.login(username, "");
+        ClientConfig.Settings settings = connectionSettings();
+        try (PlayerAuthService authService = new PlayerAuthService(settings)) {
+            LoginResponse response = authService.login(username, "");
 
             if (response.getSuccess() && "PLAYER".equals(response.getRole())) {
+                PlayerSession session = new PlayerSession();
+                session.applyLogin(username, response.getSessionId());
+
                 GameView gameView = new GameView();
-                new GameController(model, gameView, onReturnToLogin);
+                new GameController(settings, session, gameView, onReturnToLogin);
                 gameView.setVisible(true);
                 view.dispose();
             } else if (response.getSuccess()) {
-                model.shutdown();
                 JOptionPane.showMessageDialog(view, "Use the admin client to log in as an administrator.");
             } else {
-                model.shutdown();
                 JOptionPane.showMessageDialog(view, response.getMessage());
             }
         } catch (NumberFormatException ex) {
-            if (model != null) {
-                model.shutdown();
-            }
             JOptionPane.showMessageDialog(view, "Port must be a valid number.");
         } catch (Exception ex) {
-            if (model != null) {
-                model.shutdown();
-            }
-            JOptionPane.showMessageDialog(view, "Server connection failed: " + ex.getMessage());
+            JOptionPane.showMessageDialog(view,
+                    "Server connection failed:\n" + GrpcConnectionFactory.friendlyConnectionError(ex));
         }
     }
 
@@ -75,26 +72,15 @@ public class LoginController {
             return;
         }
 
-        PlayerModel model = null;
-        try {
-            model = connectModel();
-            BasicResponse response = model.register(username);
-            if (response.getSuccess()) {
-                JOptionPane.showMessageDialog(view, response.getMessage());
-            } else {
-                JOptionPane.showMessageDialog(view, response.getMessage());
-            }
-            model.shutdown();
+        ClientConfig.Settings settings = connectionSettings();
+        try (PlayerAuthService authService = new PlayerAuthService(settings)) {
+            BasicResponse response = authService.register(username);
+            JOptionPane.showMessageDialog(view, response.getMessage());
         } catch (NumberFormatException ex) {
-            if (model != null) {
-                model.shutdown();
-            }
             JOptionPane.showMessageDialog(view, "Port must be a valid number.");
         } catch (Exception ex) {
-            if (model != null) {
-                model.shutdown();
-            }
-            JOptionPane.showMessageDialog(view, "Server connection failed: " + ex.getMessage());
+            JOptionPane.showMessageDialog(view,
+                    "Server connection failed:\n" + GrpcConnectionFactory.friendlyConnectionError(ex));
         }
     }
 }

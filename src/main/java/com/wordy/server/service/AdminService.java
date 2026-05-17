@@ -41,8 +41,8 @@ public class AdminService {
         String username = request.getUsername() == null ? "" : request.getUsername().trim();
         String password = request.getPassword() == null ? "" : request.getPassword();
 
-        if (username.isEmpty() || password.isEmpty()) {
-            return OperationResult.failure("Username and password are required");
+        if (username.isEmpty()) {
+            return OperationResult.failure("Username is required");
         }
 
         if (playerRepository.findByUsername(username) != null) {

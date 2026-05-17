@@ -1,6 +1,7 @@
 package com.wordy.client.common;
 
 import com.wordy.common.ClientConfig;
+import com.wordy.common.EndpointConfig;
 
 import javax.swing.*;
 import java.awt.*;
@@ -38,36 +39,50 @@ public class ServerConnectionPanel extends JPanel {
         gbc.gridx = 1;
         add(portField, gbc);
 
+        JButton detectBtn = new JButton("Use server port");
+        UiTheme.styleSecondaryButton(detectBtn);
+        detectBtn.addActionListener(e -> applyPublishedPort());
+
         JButton saveBtn = new JButton("Save settings");
         UiTheme.styleSecondaryButton(saveBtn);
         saveBtn.addActionListener(e -> saveSettings());
+
+        JPanel actions = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 0));
+        actions.setOpaque(false);
+        actions.add(detectBtn);
+        actions.add(saveBtn);
 
         gbc.gridx = 0;
         gbc.gridy = 2;
         gbc.gridwidth = 2;
         gbc.insets = new Insets(10, 4, 0, 4);
-        add(saveBtn, gbc);
+        add(actions, gbc);
     }
 
     public String getHost() {
         return hostField.getText().trim();
     }
 
-    public int getPort() {
-        return Integer.parseInt(portField.getText().trim());
+    public String getPortText() {
+        return portField.getText().trim();
+    }
+
+    private void applyPublishedPort() {
+        int port = EndpointConfig.readPublishedPort();
+        portField.setText(String.valueOf(port));
+        JOptionPane.showMessageDialog(this,
+                "Port set to " + port + " from .wordy-grpc-port\n(Run the server first if this is still 9090.)");
     }
 
     public void saveSettings() {
         try {
-            int port = getPort();
-            if (port <= 0 || port > 65535) {
+            ClientConfig.Settings settings = ClientConfig.resolve(getHost(), getPortText());
+            if (settings.port() <= 0 || settings.port() > 65535) {
                 JOptionPane.showMessageDialog(this, "Port must be between 1 and 65535.");
                 return;
             }
-            ClientConfig.save(getHost(), port);
+            ClientConfig.save(settings.host(), settings.port());
             JOptionPane.showMessageDialog(this, "Connection settings saved.");
-        } catch (NumberFormatException ex) {
-            JOptionPane.showMessageDialog(this, "Port must be a number.");
         } catch (Exception ex) {
             JOptionPane.showMessageDialog(this, "Could not save settings: " + ex.getMessage());
         }

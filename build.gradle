@@ -71,14 +71,9 @@ protobuf {
 sourceSets {
     main {
         java {
-            srcDirs '.'
+            srcDirs 'src/main/java'
             srcDirs 'build/generated/source/proto/main/grpc'
             srcDirs 'build/generated/source/proto/main/java'
-            exclude 'build/**'
-            exclude '.gradle/**'
-            exclude '.idea/**'
-            exclude 'src/**'
-            exclude 'gradle/**'
         }
         proto {
             srcDir 'src/main/proto'

@@ -9,7 +9,9 @@ import javax.swing.border.TitledBorder;
 import javax.swing.plaf.basic.BasicButtonUI;
 import javax.swing.plaf.basic.BasicTableHeaderUI;
 import javax.swing.plaf.basic.BasicTextFieldUI;
+import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.JTableHeader;
+import javax.swing.table.TableCellRenderer;
 import java.awt.*;
 
 /**
@@ -23,7 +25,9 @@ public final class UiTheme {
     public static final Color CARD_ALT = new Color(42, 45, 56);
     public static final Color ACCENT = new Color(99, 102, 241);
     public static final Color TEXT = Color.WHITE;
+    public static final Color TEXT_ON_DARK = new Color(241, 245, 249);
     public static final Color TEXT_MUTED = new Color(156, 163, 175);
+    public static final Color SECTION_HEADING = new Color(199, 210, 254);
     public static final Color BORDER = new Color(75, 80, 96);
     public static final Color LETTERS_BG = new Color(30, 33, 42);
     public static final Color LETTERS_FG = new Color(167, 243, 208);
@@ -52,6 +56,20 @@ public final class UiTheme {
         }
         UIManager.put("Button.focus", new Color(0, 0, 0, 0));
         UIManager.put("Table.focusCellHighlightBorder", BorderFactory.createEmptyBorder());
+
+        Color panelBg = CARD;
+        UIManager.put("Panel.background", panelBg);
+        UIManager.put("Viewport.background", panelBg);
+        UIManager.put("ScrollPane.background", panelBg);
+        UIManager.put("ScrollBar.track", CARD_ALT);
+        UIManager.put("Label.background", panelBg);
+        UIManager.put("Label.foreground", TEXT_ON_DARK);
+        UIManager.put("Table.background", CARD);
+        UIManager.put("Table.foreground", TEXT_ON_DARK);
+        UIManager.put("Table.selectionBackground", ACCENT);
+        UIManager.put("Table.selectionForeground", TEXT);
+        UIManager.put("TableHeader.background", CARD_ALT);
+        UIManager.put("TableHeader.foreground", TEXT_ON_DARK);
     }
 
     public static void styleRoot(JFrame frame) {
@@ -101,9 +119,25 @@ public final class UiTheme {
     public static JLabel fieldLabel(String text) {
         JLabel label = new JLabel(text);
         label.setFont(FONT_LABEL);
-        label.setForeground(TEXT);
+        label.setForeground(TEXT_ON_DARK);
         label.setOpaque(false);
         return label;
+    }
+
+    public static JLabel sectionHeading(String text) {
+        JLabel label = new JLabel(text);
+        label.setFont(new Font("Segoe UI", Font.BOLD, 14));
+        label.setForeground(SECTION_HEADING);
+        label.setOpaque(true);
+        label.setBackground(CARD);
+        label.setBorder(new EmptyBorder(0, 0, 6, 0));
+        return label;
+    }
+
+    public static void applyDarkSurface(JComponent component) {
+        component.setOpaque(true);
+        component.setBackground(CARD);
+        component.setForeground(TEXT_ON_DARK);
     }
 
     public static void styleTextField(JTextField field) {
@@ -137,10 +171,15 @@ public final class UiTheme {
     }
 
     public static JScrollPane styleScrollPane(JComponent view) {
+        if (!view.isOpaque()) {
+            applyDarkSurface(view);
+        }
         JScrollPane scroll = new JScrollPane(view);
-        scroll.setBorder(new LineBorder(BORDER, 1, true));
-        scroll.getViewport().setBackground(view.getBackground());
+        scroll.setOpaque(true);
         scroll.setBackground(CARD);
+        scroll.getViewport().setOpaque(true);
+        scroll.getViewport().setBackground(CARD);
+        scroll.setBorder(new LineBorder(BORDER, 1, true));
         return scroll;
     }
 
@@ -211,21 +250,60 @@ public final class UiTheme {
         table.setOpaque(true);
         table.setRowHeight(32);
         table.setBackground(CARD);
-        table.setForeground(TEXT);
+        table.setForeground(TEXT_ON_DARK);
         table.setGridColor(BORDER);
         table.setSelectionBackground(ACCENT);
         table.setSelectionForeground(TEXT);
         table.setShowVerticalLines(false);
         table.setIntercellSpacing(new Dimension(0, 0));
 
+        TableCellRenderer cellRenderer = new DefaultTableCellRenderer() {
+            @Override
+            public Component getTableCellRendererComponent(
+                    JTable table, Object value, boolean isSelected, boolean hasFocus,
+                    int row, int column) {
+                Component component = super.getTableCellRendererComponent(
+                        table, value, isSelected, hasFocus, row, column);
+                if (isSelected) {
+                    component.setBackground(ACCENT);
+                    component.setForeground(TEXT);
+                } else {
+                    component.setBackground(row % 2 == 0 ? CARD : CARD_ALT);
+                    component.setForeground(TEXT_ON_DARK);
+                }
+                if (component instanceof JComponent jc) {
+                    jc.setOpaque(true);
+                }
+                return component;
+            }
+        };
+        table.setDefaultRenderer(Object.class, cellRenderer);
+        table.setDefaultRenderer(Number.class, cellRenderer);
+
         JTableHeader header = table.getTableHeader();
         header.setFont(FONT_LABEL);
         header.setUI(new BasicTableHeaderUI());
         header.setOpaque(true);
         header.setBackground(CARD_ALT);
-        header.setForeground(TEXT);
+        header.setForeground(TEXT_ON_DARK);
         header.setBorder(new LineBorder(BORDER));
         header.setReorderingAllowed(false);
+        header.setDefaultRenderer(new DefaultTableCellRenderer() {
+            @Override
+            public Component getTableCellRendererComponent(
+                    JTable table, Object value, boolean isSelected, boolean hasFocus,
+                    int row, int column) {
+                Component component = super.getTableCellRendererComponent(
+                        table, value, isSelected, hasFocus, row, column);
+                component.setBackground(CARD_ALT);
+                component.setForeground(TEXT_ON_DARK);
+                if (component instanceof JComponent jc) {
+                    jc.setOpaque(true);
+                    jc.setBorder(new EmptyBorder(6, 10, 6, 10));
+                }
+                return component;
+            }
+        });
     }
 
     public static JPanel lettersPanel(JLabel lettersLabel) {
