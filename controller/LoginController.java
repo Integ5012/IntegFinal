@@ -5,6 +5,7 @@ import com.wordy.grpc.LoginRequest;
 import com.wordy.grpc.LoginResponse;
 import com.wordy.grpc.LoginServiceGrpc;
 import com.wordy.grpc.LogoutRequest;
+import com.wordy.grpc.RegisterPlayerRequest;
 import com.wordy.server.service.AuthService;
 import com.wordy.server.service.dto.AuthResult;
 import com.wordy.server.service.dto.OperationResult;
@@ -46,6 +47,22 @@ public class LoginController extends LoginServiceGrpc.LoginServiceImplBase {
             responseObserver.onNext(BasicResponse.newBuilder()
                     .setSuccess(false)
                     .setMessage("Server error during logout: " + e.getMessage())
+                    .build());
+            responseObserver.onCompleted();
+        }
+    }
+
+    @Override
+    public void registerPlayer(RegisterPlayerRequest request, StreamObserver<BasicResponse> responseObserver) {
+        try {
+            OperationResult result = authService.registerPlayer(request.getUsername());
+            responseObserver.onNext(GrpcViewMapper.toBasicResponse(result));
+            responseObserver.onCompleted();
+        } catch (Exception e) {
+            e.printStackTrace();
+            responseObserver.onNext(BasicResponse.newBuilder()
+                    .setSuccess(false)
+                    .setMessage("Server error during registration: " + e.getMessage())
                     .build());
             responseObserver.onCompleted();
         }
